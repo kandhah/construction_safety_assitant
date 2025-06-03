@@ -1,68 +1,97 @@
-# RFI Drafting Tool
+# Construction Safety Assistant Chatbot 🏗️👷‍♂️
 
-A professional web application that helps engineers draft Request for Information (RFI) documents. Convert plain-language questions or issues into well-formatted RFI templates quickly and efficiently.
+An AI-powered chatbot designed to provide instant access to construction safety guidelines, protocols, and best practices. This tool helps construction workers maintain safety standards and access critical information hands-free on construction sites.
 
-## Features
+## 🎯 Features
 
-- Easy-to-use form interface
-- Professional RFI formatting
-- Real-time preview
-- Required field validation
-- Modern and responsive design
+- **Instant Safety Guidelines**: Quick access to safety protocols and procedures
+- **PPE Information**: Detailed guidance on Personal Protective Equipment requirements
+- **Machinery Safety**: Step-by-step safety instructions for operating construction equipment
+- **Emergency Response**: Immediate access to accident response protocols
+- **Voice Interface**: Hands-free operation through speech input for on-site use
+- **24/7 Availability**: Round-the-clock access to safety information
 
-## Getting Started
+## 💡 Use Cases
 
-### Prerequisites
+- Pre-operation equipment checks
+- Safety protocol verification
+- Emergency response procedures
+- PPE requirement confirmation
+- Site-specific safety guidelines
+- Real-time safety consultation
 
-- Node.js 16.x or later
-- npm or yarn package manager
+## 🎤 Voice Commands
 
-### Installation
+Users can interact with the assistant using voice commands, making it ideal for:
+- Hands-busy situations
+- Quick safety checks
+- Emergency information access
+- Equipment operation guidance
+
+## 📱 Example Queries
+
+```
+"What are the safety steps before using a crane?"
+"What PPE is required for welding work?"
+"What's the emergency procedure for a fall incident?"
+"How to safely operate a jackhammer?"
+```
+
+## 🚀 Getting Started
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
-cd rfi-drafting-tool
+git clone [repository-url]
 ```
 
 2. Install dependencies:
 ```bash
 npm install
-# or
-yarn install
 ```
 
-3. Start the development server:
+3. Set up environment variables:
+```bash
+cp .env.example .env
+# Add your API keys and configuration
+```
+
+4. Run the development server:
 ```bash
 npm run dev
-# or
-yarn dev
 ```
 
-4. Open [http://localhost:3000](http://localhost:3000) in your browser to see the application.
+## 🛠️ Tech Stack
 
-## Usage
+- Next.js - Frontend Framework
+- Autodesk LLMProxy - Language Model Integration
+- Web Speech API - Voice Recognition
+- Node.js - Backend Runtime
+- React - UI Library
 
-1. Fill in the RFI form with your project details:
-   - Project Name
-   - Requester Information
-   - Date
-   - Subject
-   - Description
-   - Attachments (optional)
+## 🔒 Security
 
-2. Click "Generate RFI" to create a professionally formatted RFI document.
+- All sensitive information is handled according to industry standards
+- Environment variables are used for API keys
+- User data is processed securely
 
-3. The generated RFI will appear below the form, ready to be copied or exported.
+## 📄 License
 
-## Development
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-This project uses:
-- Next.js for the framework
-- TypeScript for type safety
-- Chakra UI for the component library
-- React for the UI library
+## 🤝 Contributing
 
-## License
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-MIT 
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 📞 Support
+
+For support, please open an issue in the repository or contact the development team.
+
+---
+
+Built with ❤️ for construction worker safety 
