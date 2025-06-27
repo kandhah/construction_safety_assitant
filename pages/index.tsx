@@ -22,15 +22,20 @@ import {
   Tbody,
   Tr,
   Td,
+  Image,
+  FormControl,
+  FormLabel,
+  Tooltip,
 } from '@chakra-ui/react';
 
 interface Message {
   type: 'bot' | 'user';
   content: string;
   category?: CategoryId;
+  imageUrl?: string;
 }
 
-type CategoryId = 'ppe' | 'machinery' | 'vehicles' | 'emergency' | 'protocols' | 'hazards';
+type CategoryId = 'ppe' | 'machinery' | 'vehicles' | 'emergency' | 'protocols' | 'hazards' | 'image-analysis';
 
 interface SafetyCategory {
   id: CategoryId;
@@ -39,6 +44,7 @@ interface SafetyCategory {
   bgColor: string;
   hoverBg: string;
   icon: string;
+  description?: string;
 }
 
 const safetyCategories: SafetyCategory[] = [
@@ -48,7 +54,8 @@ const safetyCategories: SafetyCategory[] = [
     color: 'blue.500',
     bgColor: 'blue.50',
     hoverBg: 'blue.100',
-    icon: '🥽'
+    icon: '🥽',
+    description: '• Hard hats and helmets\n• Safety glasses\n• High-vis clothing\n• Safety boots\n• Protective gloves'
   },
   { 
     id: 'machinery', 
@@ -56,7 +63,8 @@ const safetyCategories: SafetyCategory[] = [
     color: 'orange.500',
     bgColor: 'orange.50',
     hoverBg: 'orange.100',
-    icon: '⚙️'
+    icon: '⚙️',
+    description: '• Equipment inspection\n• Safe operation guidelines\n• Maintenance protocols\n• Emergency procedures\n• Operator certification'
   },
   { 
     id: 'vehicles', 
@@ -64,7 +72,8 @@ const safetyCategories: SafetyCategory[] = [
     color: 'green.500',
     bgColor: 'green.50',
     hoverBg: 'green.100',
-    icon: '🚛'
+    icon: '🚛',
+    description: '• Vehicle inspections\n• Traffic management\n• Loading procedures\n• Parking guidelines\n• Operator requirements'
   },
   { 
     id: 'emergency', 
@@ -72,7 +81,8 @@ const safetyCategories: SafetyCategory[] = [
     color: 'red.500',
     bgColor: 'red.50',
     hoverBg: 'red.100',
-    icon: '🚨'
+    icon: '🚨',
+    description: '• Emergency contacts\n• Evacuation routes\n• First aid locations\n• Fire safety\n• Incident reporting'
   },
   { 
     id: 'protocols', 
@@ -80,7 +90,8 @@ const safetyCategories: SafetyCategory[] = [
     color: 'purple.500',
     bgColor: 'purple.50',
     hoverBg: 'purple.100',
-    icon: '📋'
+    icon: '📋',
+    description: '• Daily safety briefings\n• Risk assessments\n• Permit requirements\n• Safety audits\n• Compliance checks'
   },
   { 
     id: 'hazards', 
@@ -88,7 +99,17 @@ const safetyCategories: SafetyCategory[] = [
     color: 'yellow.500',
     bgColor: 'yellow.50',
     hoverBg: 'yellow.100',
-    icon: '⚠️'
+    icon: '⚠️',
+    description: '• Site hazard mapping\n• Risk assessment\n• Control measures\n• Warning signage\n• Safety barriers'
+  },
+  { 
+    id: 'image-analysis', 
+    name: 'Photo Analysis', 
+    color: 'teal.500',
+    bgColor: 'teal.50',
+    hoverBg: 'teal.100',
+    icon: '📸',
+    description: '• PPE compliance check\n• Safety signage verification\n• Hazard detection\n• Equipment safety check\n• Site organization review'
   }
 ];
 
@@ -114,11 +135,11 @@ const headerStyles = {
   h4: { size: 'sm', color: 'gray.700', mt: 4, mb: 3 }
 } as const;
 
-function formatMessageContent(content: string) {
+function formatMessageContent(content: string): JSX.Element[] {
   // Split content but preserve separators
   const sections = content.split('\n\n');
   
-  return sections.map((section, i) => {
+  return sections.map((section, i): JSX.Element => {
     // Handle separators with elegant styling
     if (section.match(/^-{3,}$/)) {
       return (
@@ -372,8 +393,12 @@ export default function Home() {
   const [isListening, setIsListening] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<CategoryId | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const toast = useToast();
   const recognitionRef = useRef<any>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const startSpeechRecognition = () => {
     if ('webkitSpeechRecognition' in window) {
@@ -489,6 +514,117 @@ export default function Home() {
     }
   };
 
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (isAnalyzing) return; // Prevent upload during analysis
+
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 4 * 1024 * 1024) {
+        toast({
+          title: 'Error',
+          description: 'Image size must be less than 4MB',
+          status: 'error',
+          duration: 3000,
+        });
+        return;
+      }
+
+      setSelectedImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const analyzeImage = async () => {
+    if (!selectedImage || isAnalyzing) return;
+
+    setIsAnalyzing(true);
+    try {
+      const reader = new FileReader();
+      
+      reader.onerror = () => {
+        console.error('FileReader error:', reader.error);
+        toast({
+          title: 'Error',
+          description: 'Failed to read image file',
+          status: 'error',
+          duration: 3000,
+        });
+        setIsAnalyzing(false);
+      };
+
+      reader.onload = async () => {
+        try {
+          if (!reader.result) {
+            throw new Error('No image data available');
+          }
+
+          const base64Data = (reader.result as string).split(',')[1];
+          
+          const response = await fetch('/api/analyze-image', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ image: base64Data }),
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.content || 'Failed to analyze image');
+          }
+
+          if (!data.content) {
+            throw new Error('Invalid response from server');
+          }
+          
+          setMessages(prev => [
+            ...prev,
+            {
+              type: 'user',
+              content: 'Analyze this construction site image for safety compliance.',
+              category: 'image-analysis',
+              imageUrl: imagePreview!
+            },
+            {
+              type: 'bot',
+              content: data.content,
+              category: 'image-analysis'
+            }
+          ]);
+
+          setSelectedImage(null);
+          setImagePreview(null);
+        } catch (error) {
+          console.error('Analysis error:', error);
+          toast({
+            title: 'Error',
+            description: error instanceof Error ? error.message : 'Failed to analyze image',
+            status: 'error',
+            duration: 3000,
+          });
+        } finally {
+          setIsAnalyzing(false);
+        }
+      };
+
+      reader.readAsDataURL(selectedImage);
+    } catch (error) {
+      console.error('File processing error:', error);
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to process image',
+        status: 'error',
+        duration: 3000,
+      });
+      setIsAnalyzing(false);
+    }
+  };
+
   return (
     <Box maxW="1280px" mx="auto" h="100vh" p={0} bg="white">
       <HStack spacing={0} align="stretch" h="full" boxShadow="lg" borderRadius="xl" overflow="hidden">
@@ -518,23 +654,42 @@ export default function Home() {
             <List spacing={2}>
               {safetyCategories.map((category) => (
                 <ListItem key={category.id}>
-                  <Button
-                    width="full"
-                    justifyContent="flex-start"
-                    bg={selectedCategory === category.id ? category.color : category.bgColor}
-                    color={selectedCategory === category.id ? 'white' : category.color}
-                    _hover={{ 
-                      bg: selectedCategory === category.id ? category.color : category.hoverBg,
-                      transform: 'translateX(2px)'
-                    }}
-                    transition="all 0.2s"
-                    borderRadius="lg"
+                  <Tooltip 
+                    label={category.description} 
+                    placement="right"
+                    hasArrow
+                    maxW="200px"
+                    bg="gray.700"
+                    color="white"
                     p={3}
-                    onClick={() => handleCategorySelect(category.id)}
-                    leftIcon={<Box as="span" fontSize="xl">{category.icon}</Box>}
+                    borderRadius="md"
+                    fontSize="sm"
+                    whiteSpace="pre-line"
+                    openDelay={200}
                   >
-                    {category.name}
-                  </Button>
+                    <Button
+                      width="full"
+                      justifyContent="flex-start"
+                      bg={selectedCategory === category.id ? category.color : category.bgColor}
+                      color={selectedCategory === category.id ? 'white' : category.color}
+                      _hover={{ 
+                        bg: selectedCategory === category.id ? category.color : category.hoverBg,
+                        transform: 'translateX(2px)'
+                      }}
+                      transition="all 0.2s"
+                      borderRadius="lg"
+                      p={3}
+                      onClick={() => handleCategorySelect(category.id)}
+                      leftIcon={<Box as="span" fontSize="xl">{category.icon}</Box>}
+                    >
+                      {category.name}
+                    </Button>
+                  </Tooltip>
+                  {category.id === 'image-analysis' && (
+                    <Text fontSize="xs" color="gray.200" mt={1} px={3}>
+                      Upload site photos for automated safety compliance checks
+                    </Text>
+                  )}
                 </ListItem>
               ))}
             </List>
@@ -634,6 +789,15 @@ export default function Home() {
                       </Badge>
                     )}
                     <VStack align="stretch" spacing={2}>
+                      {message.imageUrl && (
+                        <Image
+                          src={message.imageUrl}
+                          alt="Construction site"
+                          maxH="300px"
+                          objectFit="contain"
+                          borderRadius="md"
+                        />
+                      )}
                       {formatMessageContent(message.content)}
                     </VStack>
                   </Box>
@@ -650,46 +814,106 @@ export default function Home() {
             bg="white"
             boxShadow="0 -2px 10px rgba(0,0,0,0.05)"
           >
-            <Flex>
-              <Input
-                value={currentInput}
-                onChange={(e) => setCurrentInput(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Ask about safety guidelines, procedures, or equipment..."
-                mr={2}
-                disabled={isGenerating}
-                bg="white"
-                borderColor="gray.300"
-                _hover={{ borderColor: "blue.400" }}
-                _focus={{
-                  borderColor: "blue.400",
-                  boxShadow: "0 0 0 1px var(--chakra-colors-blue-400)"
-                }}
-              />
-              <IconButton
-                aria-label="Voice Input"
-                icon={<MicrophoneIcon />}
-                colorScheme={isListening ? 'red' : 'blue'}
-                variant="outline"
-                onClick={startSpeechRecognition}
-                mr={2}
-                isDisabled={isGenerating}
-              />
-              <Button
-                colorScheme="blue"
-                onClick={() => handleUserInput()}
-                isLoading={isGenerating}
-                loadingText="Generating..."
-                disabled={!currentInput.trim() || isGenerating}
-                px={6}
-                size="md"
-                fontWeight="semibold"
-                _hover={{ transform: 'translateY(-1px)' }}
-                transition="all 0.2s"
-              >
-                Send
-              </Button>
-            </Flex>
+            <VStack spacing={4} width="full">
+              {imagePreview && (
+                <Box width="full">
+                  <Image
+                    src={imagePreview}
+                    alt="Selected construction site"
+                    maxH="200px"
+                    objectFit="contain"
+                    borderRadius="md"
+                  />
+                  <Button
+                    mt={2}
+                    colorScheme="blue"
+                    onClick={analyzeImage}
+                    isLoading={isAnalyzing}
+                    loadingText="Analyzing image..."
+                    width="full"
+                    isDisabled={isAnalyzing}
+                  >
+                    Analyze Image
+                  </Button>
+                </Box>
+              )}
+              <Flex width="full">
+                <Input
+                  value={currentInput}
+                  onChange={(e) => setCurrentInput(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Ask about safety guidelines, procedures, or equipment..."
+                  mr={2}
+                  disabled={isGenerating}
+                  bg="white"
+                  borderColor="gray.300"
+                  _hover={{ borderColor: "blue.400" }}
+                  _focus={{
+                    borderColor: "blue.400",
+                    boxShadow: "0 0 0 1px var(--chakra-colors-blue-400)"
+                  }}
+                />
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  ref={fileInputRef}
+                  style={{ display: 'none' }}
+                  disabled={isAnalyzing}
+                />
+                <Tooltip
+                  label={isAnalyzing 
+                    ? "Please wait while the current image is being analyzed" 
+                    : "Upload a construction site photo for AI safety analysis. Our system will check for PPE compliance, safety hazards, and more."}
+                  placement="top"
+                  hasArrow
+                  maxW="300px"
+                  bg="gray.700"
+                  color="white"
+                  p={2}
+                  borderRadius="md"
+                >
+                  <IconButton
+                    aria-label="Upload Image"
+                    icon={isAnalyzing ? <span>⏳</span> : <span>📸</span>}
+                    onClick={() => !isAnalyzing && fileInputRef.current?.click()}
+                    mr={2}
+                    variant="outline"
+                    colorScheme="teal"
+                    isDisabled={isAnalyzing}
+                    _disabled={{
+                      opacity: 0.6,
+                      cursor: 'not-allowed',
+                      boxShadow: 'none',
+                      bg: 'gray.100'
+                    }}
+                  />
+                </Tooltip>
+                <IconButton
+                  aria-label="Voice Input"
+                  icon={<MicrophoneIcon />}
+                  colorScheme={isListening ? 'red' : 'blue'}
+                  variant="outline"
+                  onClick={startSpeechRecognition}
+                  mr={2}
+                  isDisabled={isGenerating}
+                />
+                <Button
+                  colorScheme="blue"
+                  onClick={() => handleUserInput()}
+                  isLoading={isGenerating}
+                  loadingText="Generating..."
+                  disabled={!currentInput.trim() || isGenerating}
+                  px={6}
+                  size="md"
+                  fontWeight="semibold"
+                  _hover={{ transform: 'translateY(-1px)' }}
+                  transition="all 0.2s"
+                >
+                  Send
+                </Button>
+              </Flex>
+            </VStack>
           </Box>
         </Flex>
       </HStack>
